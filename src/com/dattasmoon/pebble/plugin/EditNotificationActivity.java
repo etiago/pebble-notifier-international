@@ -1,5 +1,6 @@
 /* 
 Copyright (c) 2013 Dattas Moonchaser
+Parts Copyright (c) 2013 Tiago Espinha (modifications)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -49,6 +50,8 @@ import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.TextView;
 
+import com.espinhasoftware.pebblenotifier.R;
+
 public class EditNotificationActivity extends AbstractPluginActivity {
 
     ListView          lvPackages;
@@ -91,28 +94,21 @@ public class EditNotificationActivity extends AbstractPluginActivity {
             }
         });
 
-
-
     }
 
     @Override
-    public void onResume(){
+    public void onResume() {
         super.onResume();
         if (mode == Mode.STANDARD) {
-            sharedPreferences = getSharedPreferences(Constants.LOG_TAG+"_preferences", MODE_MULTI_PROCESS | MODE_PRIVATE);
+            // sharedPreferences = getSharedPreferences(Constants.LOG_TAG +
+            // "_preferences", MODE_MULTI_PROCESS
+            // | MODE_PRIVATE);
+            sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
             if (sharedPreferences.getBoolean(Constants.PREFERENCE_TASKER_SET, false)) {
                 tvTaskerNotice.setVisibility(View.VISIBLE);
             }
             spMode.setSelection(sharedPreferences.getInt(Constants.PREFERENCE_MODE, Constants.Mode.OFF.ordinal()));
 
-            // legacy preference handler
-            if (sharedPreferences.contains(Constants.PREFERENCE_EXCLUDE_MODE)) {
-                if (sharedPreferences.getBoolean(Constants.PREFERENCE_EXCLUDE_MODE, false)) {
-                    spMode.setSelection(Constants.Mode.INCLUDE.ordinal());
-                } else {
-                    spMode.setSelection(Constants.Mode.EXCLUDE.ordinal());
-                }
-            }
         } else if (mode == Mode.LOCALE) {
             if (localeBundle != null) {
                 spMode.setSelection(localeBundle.getInt(Constants.BUNDLE_EXTRA_INT_MODE, Constants.Mode.OFF.ordinal()));
@@ -130,7 +126,7 @@ public class EditNotificationActivity extends AbstractPluginActivity {
         super.onCreateOptionsMenu(menu);
         MenuInflater menuInflater = getMenuInflater();
         menuInflater.inflate(R.menu.activity_edit_notifications, menu);
-        if(mode == Mode.LOCALE){
+        if (mode == Mode.LOCALE) {
             menu.removeItem(R.id.btnSettings);
         }
         return true;
@@ -148,14 +144,16 @@ public class EditNotificationActivity extends AbstractPluginActivity {
             dialog.setMessage("Are you sure you want to uncheck all of the boxes below?");
             dialog.setCancelable(false);
             dialog.setButton(DialogInterface.BUTTON_POSITIVE, "Yes", new DialogInterface.OnClickListener() {
+                @Override
                 public void onClick(DialogInterface dialog, int buttonId) {
                     ((packageAdapter) lvPackages.getAdapter()).selected.clear();
                     lvPackages.invalidateViews();
                 }
             });
             dialog.setButton(DialogInterface.BUTTON_NEGATIVE, "No", new DialogInterface.OnClickListener() {
+                @Override
                 public void onClick(DialogInterface dialog, int buttonId) {
-                    //do nothing!
+                    // do nothing!
                 }
             });
             dialog.setIcon(android.R.drawable.ic_dialog_alert);
@@ -352,7 +350,7 @@ public class EditNotificationActivity extends AbstractPluginActivity {
             selected = new ArrayList<String>();
             String packageList;
             if (mode == Mode.LOCALE) {
-                if(Constants.IS_LOGGABLE){
+                if (Constants.IS_LOGGABLE) {
                     Log.i(Constants.LOG_TAG, "Locale mode");
                 }
                 if (localeBundle != null) {
@@ -361,23 +359,23 @@ public class EditNotificationActivity extends AbstractPluginActivity {
                         // this can be null if it doesn't currently exist in the
                         // locale bundle, handle gracefully
                         packageList = "";
-                        if(Constants.IS_LOGGABLE){
+                        if (Constants.IS_LOGGABLE) {
                             Log.i(Constants.LOG_TAG, "Package list from locale bundle is currently null");
                         }
                     }
                 } else {
                     packageList = "";
-                    if(Constants.IS_LOGGABLE){
+                    if (Constants.IS_LOGGABLE) {
                         Log.i(Constants.LOG_TAG, "Locale bundle is null");
                     }
                 }
             } else {
-                if(Constants.IS_LOGGABLE){
+                if (Constants.IS_LOGGABLE) {
                     Log.i(Constants.LOG_TAG, "I am pulling from sharedPrefs");
                 }
                 packageList = sharedPreferences.getString(Constants.PREFERENCE_PACKAGE_LIST, "");
             }
-            if(Constants.IS_LOGGABLE){
+            if (Constants.IS_LOGGABLE) {
                 Log.i(Constants.LOG_TAG, "Package list is: " + packageList);
             }
             for (String strPackage : packageList.split(",")) {

@@ -8,6 +8,23 @@
                 android:key="pref_notif_only"
                 android:summary="@string/pref_notif_only_summ"
                 android:title="@string/pref_notif_only" />
+        <CheckBoxPreference 
+			    android:key="pref_notif_unicode"
+			    android:title="@string/pref_notif_unicode"
+			    android:defaultValue="false"
+			    android:summary="@string/pref_notif_unicode_summ" />
+        <ListPreference 
+            	android:dependency="pref_notif_unicode"
+			    android:key="pref_notif_timeout"
+			    android:title="@string/pref_notif_timeout"
+			    android:defaultValue="10000"
+			    android:entries="@array/pref_notif_timeout"
+			    android:entryValues="@array/pref_notif_timeout_values"/>
+        <Preference
+            	android:dependency="pref_notif_unicode"
+                android:title="@string/pref_watchapp"
+                android:key="pref_watchapp"
+                android:summary="@string/pref_watchapp_summ" />
         <CheckBoxPreference
                 android:defaultValue="false"
                 android:key="pref_fetch_notif_extras"

@@ -14,6 +14,8 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.widget.EditText;
 
+import com.espinhasoftware.pebblenotifier.R;
+
 public class EditActivity extends AbstractPluginActivity {
     EditText txtTitle;
     EditText txtBody;

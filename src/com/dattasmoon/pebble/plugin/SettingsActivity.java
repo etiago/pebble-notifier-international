@@ -1,5 +1,6 @@
 /*
 Copyright (c) 2013 Robin Sheat and Dattas Moonchaser
+Parts Copyright (c) 2013 Tiago Espinha (modifications)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy 
 of this software and associated documentation files (the "Software"), to deal 
@@ -21,6 +22,9 @@ SOFTWARE.
  */
 package com.dattasmoon.pebble.plugin;
 
+import java.io.File;
+import java.io.IOException;
+
 import android.app.Dialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -35,8 +39,7 @@ import android.view.View;
 import android.view.Window;
 import android.widget.Toast;
 
-import java.io.File;
-import java.io.IOException;
+import com.espinhasoftware.pebblenotifier.R;
 
 /**
  * This activity handles any logic for the settings screen (of which there is\
@@ -55,17 +58,22 @@ public class SettingsActivity extends PreferenceActivity {
         super.onCreate(savedInstanceState);
 
         SharedPreferences sharedPreferences = getSharedPreferences(Constants.LOG_TAG, MODE_MULTI_PROCESS | MODE_PRIVATE);
-        //if old preferences exist, convert them.
-        if(sharedPreferences.contains(Constants.LOG_TAG + ".mode")){
-            SharedPreferences sharedPref = getSharedPreferences(Constants.LOG_TAG + "_preferences", MODE_MULTI_PROCESS | MODE_PRIVATE);
+        // if old preferences exist, convert them.
+        if (sharedPreferences.contains(Constants.LOG_TAG + ".mode")) {
+            SharedPreferences sharedPref = getSharedPreferences(Constants.LOG_TAG + "_preferences", MODE_MULTI_PROCESS
+                    | MODE_PRIVATE);
             SharedPreferences.Editor editor = sharedPref.edit();
-            editor.putInt(Constants.PREFERENCE_MODE, sharedPreferences.getInt(Constants.LOG_TAG + ".mode", Constants.Mode.OFF.ordinal()));
-            editor.putString(Constants.PREFERENCE_PACKAGE_LIST, sharedPreferences.getString(Constants.LOG_TAG + ".packageList", ""));
-            editor.putBoolean(Constants.PREFERENCE_NOTIFICATIONS_ONLY, sharedPreferences.getBoolean(Constants.LOG_TAG + ".notificationsOnly", true));
-            editor.putBoolean(Constants.PREFERENCE_NOTIFICATION_EXTRA, sharedPreferences.getBoolean(Constants.LOG_TAG + ".fetchNotificationExtras", false));
+            editor.putInt(Constants.PREFERENCE_MODE,
+                    sharedPreferences.getInt(Constants.LOG_TAG + ".mode", Constants.Mode.OFF.ordinal()));
+            editor.putString(Constants.PREFERENCE_PACKAGE_LIST,
+                    sharedPreferences.getString(Constants.LOG_TAG + ".packageList", ""));
+            editor.putBoolean(Constants.PREFERENCE_NOTIFICATIONS_ONLY,
+                    sharedPreferences.getBoolean(Constants.LOG_TAG + ".notificationsOnly", true));
+            editor.putBoolean(Constants.PREFERENCE_NOTIFICATION_EXTRA,
+                    sharedPreferences.getBoolean(Constants.LOG_TAG + ".fetchNotificationExtras", false));
             editor.commit();
 
-            //clear out all old preferences
+            // clear out all old preferences
             editor = sharedPreferences.edit();
             editor.clear();
             editor.commit();
@@ -89,7 +97,7 @@ public class SettingsActivity extends PreferenceActivity {
             @Override
             public boolean onPreferenceClick(Preference preference) {
                 pref_version_clicks++;
-                if(pref_version_clicks > 5){
+                if (pref_version_clicks > 5) {
                     final Dialog easterDialog = new Dialog(SettingsActivity.this);
                     easterDialog.getWindow().requestFeature(Window.FEATURE_NO_TITLE);
                     easterDialog.setContentView(getLayoutInflater().inflate(R.layout.dialog_easter_hidden, null));
@@ -104,14 +112,26 @@ public class SettingsActivity extends PreferenceActivity {
                 }
                 return true;
 
+            }
+        });
 
+        Preference pref_watchapp = findPreference("pref_watchapp");
+        pref_watchapp.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
+            @Override
+            public boolean onPreferenceClick(Preference preference) {
+                // send intent
+                Intent i = new Intent(Intent.ACTION_VIEW);
+                i.setData(Uri.parse(Constants.WATCHAPP_URL));
+                startActivity(i);
+                return true;
             }
         });
 
         Preference pref_donate = findPreference("pref_donate");
         pref_donate.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
+            @Override
             public boolean onPreferenceClick(Preference preference) {
-                //send intent
+                // send intent
                 Intent i = new Intent(Intent.ACTION_VIEW);
                 i.setData(Uri.parse(Constants.DONATION_URL));
                 startActivity(i);
@@ -119,11 +139,10 @@ public class SettingsActivity extends PreferenceActivity {
             }
         });
 
-
     }
 
     @Override
-    protected void onPause(){
+    protected void onPause() {
         File watchFile = new File(getFilesDir() + "PrefsChanged.none");
         if (!watchFile.exists()) {
             try {

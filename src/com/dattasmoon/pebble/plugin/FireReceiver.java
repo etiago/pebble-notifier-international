@@ -31,6 +31,7 @@ import android.util.Log;
 
 import com.dattasmoon.pebble.plugin.Constants.Mode;
 import com.dattasmoon.pebble.plugin.Constants.Type;
+import com.espinhasoftware.pebblenotifier.R;
 
 public class FireReceiver extends BroadcastReceiver {
 
@@ -59,21 +60,23 @@ public class FireReceiver extends BroadcastReceiver {
                     break;
                 }
 
-                //handle quiet hours DND
+                // handle quiet hours DND
                 boolean quiet_hours = sharedPref.getBoolean(Constants.PREFERENCE_QUIET_HOURS, false);
-                //we only need to pull this if quiet hours are enabled. Save the cycles for the cpu! (haha)
-                if(quiet_hours){
+                // we only need to pull this if quiet hours are enabled. Save
+                // the cycles for the cpu! (haha)
+                if (quiet_hours) {
                     String[] pieces = sharedPref.getString(Constants.PREFERENCE_QUIET_HOURS_BEFORE, "00:00").split(":");
-                    Date quiet_hours_before= new Date(0, 0, 0, Integer.parseInt(pieces[0]), Integer.parseInt(pieces[1]));
+                    Date quiet_hours_before = new Date(0, 0, 0, Integer.parseInt(pieces[0]),
+                            Integer.parseInt(pieces[1]));
                     pieces = sharedPref.getString(Constants.PREFERENCE_QUIET_HOURS_AFTER, "23:59").split(":");
                     Date quiet_hours_after = new Date(0, 0, 0, Integer.parseInt(pieces[0]), Integer.parseInt(pieces[1]));
                     Calendar c = Calendar.getInstance();
                     Date now = new Date(0, 0, 0, c.get(Calendar.HOUR_OF_DAY), c.get(Calendar.MINUTE));
                     if (Constants.IS_LOGGABLE) {
-                        Log.i(Constants.LOG_TAG, "Checking quiet hours. Now: " + now.toString() + " vs " +
-                                quiet_hours_before.toString() + " and " +quiet_hours_after.toString());
+                        Log.i(Constants.LOG_TAG, "Checking quiet hours. Now: " + now.toString() + " vs "
+                                + quiet_hours_before.toString() + " and " + quiet_hours_after.toString());
                     }
-                    if(now.before(quiet_hours_before) || now.after(quiet_hours_after)){
+                    if (now.before(quiet_hours_before) || now.after(quiet_hours_after)) {
                         if (Constants.IS_LOGGABLE) {
                             Log.i(Constants.LOG_TAG, "Time is before or after the quiet hours time. Returning.");
                         }
@@ -96,7 +99,7 @@ public class FireReceiver extends BroadcastReceiver {
         }
     }
 
-    public void setNotificationSettings(final Context context, int bundleVersionCode, Mode mode,String packageList) {
+    public void setNotificationSettings(final Context context, int bundleVersionCode, Mode mode, String packageList) {
 
         if (Constants.IS_LOGGABLE) {
             switch (mode) {
@@ -115,7 +118,8 @@ public class FireReceiver extends BroadcastReceiver {
             Log.i(Constants.LOG_TAG, "Package list is: " + packageList);
         }
 
-        Editor editor = context.getSharedPreferences(Constants.LOG_TAG+"_preferences", context.MODE_MULTI_PROCESS | context.MODE_PRIVATE).edit();
+        Editor editor = context.getSharedPreferences(Constants.LOG_TAG + "_preferences",
+                context.MODE_MULTI_PROCESS | context.MODE_PRIVATE).edit();
         editor.putInt(Constants.PREFERENCE_MODE, mode.ordinal());
         editor.putBoolean(Constants.PREFERENCE_TASKER_SET, true);
         editor.putString(Constants.PREFERENCE_PACKAGE_LIST, packageList);

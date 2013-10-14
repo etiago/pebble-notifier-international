@@ -12,11 +12,14 @@ package com.dattasmoon.pebble.plugin;
 import android.content.Context;
 import android.util.Log;
 
+import com.espinhasoftware.pebblenotifier.BuildConfig;
+
 public final class Constants {
 
     public static final String  LOG_TAG                               = "com.dattasmoon.pebble.plugin";
     public static final boolean IS_LOGGABLE                           = BuildConfig.DEBUG;
-    public static final String  DONATION_URL                          = "https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3W6PJ6EK6JVJY";
+    public static final String  DONATION_URL                          = "https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=MHE42VY8WKG9U";
+    public static final String  WATCHAPP_URL                          = "http://bit.ly/pnintwap";
 
     // bundle extras
     public static final String  BUNDLE_EXTRA_INT_VERSION_CODE         = LOG_TAG + ".INT_VERSION_CODE";
@@ -47,6 +50,12 @@ public final class Constants {
     public static final String  PREFERENCE_QUIET_HOURS_BEFORE         = "pref_dnd_time_before";
     public static final String  PREFERENCE_QUIET_HOURS_AFTER          = "pref_dnd_time_after";
 
+    // Tiago: added for unicode notifications
+    public static final String  PREFERENCE_UNICODE                    = "pref_notif_unicode";
+    public static final String  PREFERENCE_NOTIFICATION_TIMEOUT       = "pref_notif_timeout";
+
+    public static final String  DATABASE_READY                        = "status_database_ready";
+
     // Intents
     public static final String  INTENT_SEND_PEBBLE_NOTIFICATION       = "com.getpebble.action.SEND_NOTIFICATION";
 
@@ -54,7 +63,7 @@ public final class Constants {
     public static final String  PEBBLE_MESSAGE_TYPE_ALERT             = "PEBBLE_ALERT";
 
     // Accessibility specific items
-    public static final String  ACCESSIBILITY_SERVICE                 = "com.dattasmoon.pebble.plugin/com.dattasmoon.pebble.plugin.NotificationService";
+    public static final String  ACCESSIBILITY_SERVICE                 = "com.espinhasoftware.pebblenotifier/com.dattasmoon.pebble.plugin.NotificationService";
 
     public static enum Type {
         NOTIFICATION, SETTINGS

@@ -1,6 +1,7 @@
 /* 
 Copyright (c) 2013 Dattas Moonchaser
 Parts Copyright (c) 2013 Robin Sheat
+Parts Copyright (c) 2013 Tiago Espinha (modifications)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -12,24 +13,29 @@ package com.dattasmoon.pebble.plugin;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
-
-import org.json.JSONArray;
-import org.json.JSONObject;
+import java.util.Calendar;
+import java.util.Date;
 
 import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.AccessibilityServiceInfo;
 import android.annotation.TargetApi;
 import android.app.Notification;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
+import android.os.Message;
+import android.os.Messenger;
 import android.os.Parcelable;
 import android.os.PowerManager;
+import android.os.RemoteException;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -40,6 +46,9 @@ import android.widget.RemoteViews;
 import android.widget.TextView;
 
 import com.dattasmoon.pebble.plugin.Constants.Mode;
+import com.espinhasoftware.wechatpebble.pebblecomm.PebbleMessage;
+import com.espinhasoftware.wechatpebble.service.MessageProcessingService;
+import com.espinhasoftware.wechatpebble.service.PebbleCommService;
 
 public class NotificationService extends AccessibilityService {
     private class queueItem {
@@ -52,21 +61,24 @@ public class NotificationService extends AccessibilityService {
         }
     }
 
-    private Mode     mode                   = Mode.EXCLUDE;
-    private boolean  notifications_only     = false;
-    private boolean  no_ongoing_notifs      = false;
-    private boolean  notification_extras    = false;
-    private boolean  quiet_hours            = false;
-    private boolean  notifScreenOn          = true;
-    private long     min_notification_wait  = 0 * 1000;
-    private long     notification_last_sent = 0;
-    private Date     quiet_hours_before     = null;
-    private Date     quiet_hours_after      = null;
-    private String[] packages               = null;
-    private Handler  mHandler;
-    private File     watchFile;
-    private Long     lastChange;
-    Queue<queueItem> queue;
+    private Mode       mode                   = Mode.EXCLUDE;
+    private boolean    notifications_only     = false;
+    private boolean    no_ongoing_notifs      = false;
+    private boolean    notification_extras    = false;
+    private boolean    quiet_hours            = false;
+    private boolean    notifScreenOn          = true;
+    private boolean    unicode_notifications  = false;
+    private int        notification_timeout   = 10000;
+    private long       min_notification_wait  = 0 * 1000;
+    private final long notification_last_sent = 0;
+    private Date       quiet_hours_before     = null;
+    private Date       quiet_hours_after      = null;
+    private String[]   packages               = null;
+    private Handler    mHandler;
+    private File       watchFile;
+    private Long       lastChange;
+
+    // Queue<queueItem> queue;
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
@@ -86,16 +98,17 @@ public class NotificationService extends AccessibilityService {
             return;
         }
 
-        //handle quiet hours
-        if(quiet_hours){
+        // handle quiet hours
+        if (quiet_hours) {
 
             Calendar c = Calendar.getInstance();
             Date now = new Date(0, 0, 0, c.get(Calendar.HOUR_OF_DAY), c.get(Calendar.MINUTE));
             if (Constants.IS_LOGGABLE) {
-                Log.i(Constants.LOG_TAG, "Checking quiet hours. Now: " + now.toString() + " vs " +
-                        quiet_hours_before.toString() + " and " +quiet_hours_after.toString());
+                Log.i(Constants.LOG_TAG,
+                        "Checking quiet hours. Now: " + now.toString() + " vs " + quiet_hours_before.toString()
+                                + " and " + quiet_hours_after.toString());
             }
-            if(now.before(quiet_hours_before) || now.after(quiet_hours_after)){
+            if (now.before(quiet_hours_before) || now.after(quiet_hours_after)) {
                 if (Constants.IS_LOGGABLE) {
                     Log.i(Constants.LOG_TAG, "Time is before or after the quiet hours time. Returning.");
                 }
@@ -118,15 +131,16 @@ public class NotificationService extends AccessibilityService {
                 }
             }
         }
-        if (no_ongoing_notifs){
+        if (no_ongoing_notifs) {
             Parcelable parcelable = event.getParcelableData();
             if (parcelable instanceof Notification) {
                 Notification notif = (Notification) parcelable;
                 if (Constants.IS_LOGGABLE) {
                     Log.i(Constants.LOG_TAG,
-                            "Looking at " +  String.valueOf(notif.flags) + " vs " + String.valueOf(Notification.FLAG_ONGOING_EVENT));
+                            "Looking at " + String.valueOf(notif.flags) + " vs "
+                                    + String.valueOf(Notification.FLAG_ONGOING_EVENT));
                 }
-                if ((notif.flags & Notification.FLAG_ONGOING_EVENT) == Notification.FLAG_ONGOING_EVENT){
+                if ((notif.flags & Notification.FLAG_ONGOING_EVENT) == Notification.FLAG_ONGOING_EVENT) {
                     if (Constants.IS_LOGGABLE) {
                         Log.i(Constants.LOG_TAG,
                                 "Event is a notification, notification flag contains ongoing, and no ongoing notification is true. Returning.");
@@ -135,12 +149,10 @@ public class NotificationService extends AccessibilityService {
                 }
             } else {
                 if (Constants.IS_LOGGABLE) {
-                    Log.i(Constants.LOG_TAG,
-                            "Event is not a notification.");
+                    Log.i(Constants.LOG_TAG, "Event is not a notification.");
                 }
             }
         }
-
 
         // Handle the do not disturb screen on settings
         PowerManager powMan = (PowerManager) this.getSystemService(Context.POWER_SERVICE);
@@ -166,7 +178,7 @@ public class NotificationService extends AccessibilityService {
         PackageManager pm = getPackageManager();
 
         String eventPackageName;
-        if (event.getPackageName() != null){
+        if (event.getPackageName() != null) {
             eventPackageName = event.getPackageName().toString();
         } else {
             eventPackageName = "";
@@ -253,37 +265,226 @@ public class NotificationService extends AccessibilityService {
         }
     }
 
-    private void sendToPebble(String title, String notificationText) {
-        title = title.trim();
-        notificationText = notificationText.trim();
-        if (title.trim().isEmpty() || notificationText.isEmpty()) {
-            if (Constants.IS_LOGGABLE) {
-                Log.i(Constants.LOG_TAG, "Detected empty title or notification text, skipping");
+    /*
+     * private void sendToPebble(String title, String notificationText) { title
+     * = title.trim(); notificationText = notificationText.trim(); if
+     * (title.trim().isEmpty() || notificationText.isEmpty()) { if
+     * (Constants.IS_LOGGABLE) { Log.i(Constants.LOG_TAG,
+     * "Detected empty title or notification text, skipping"); } return; } //
+     * Create json object to be sent to Pebble final Map<String, Object> data =
+     * new HashMap<String, Object>();
+     * 
+     * data.put("title", title);
+     * 
+     * data.put("body", notificationText); final JSONObject jsonData = new
+     * JSONObject(data); final String notificationData = new
+     * JSONArray().put(jsonData).toString();
+     * 
+     * // Create the intent to house the Pebble notification final Intent i =
+     * new Intent(Constants.INTENT_SEND_PEBBLE_NOTIFICATION);
+     * i.putExtra("messageType", Constants.PEBBLE_MESSAGE_TYPE_ALERT);
+     * i.putExtra("sender", getString(R.string.app_name));
+     * i.putExtra("notificationData", notificationData);
+     * 
+     * // Send the alert to Pebble if (Constants.IS_LOGGABLE) {
+     * Log.d(Constants.LOG_TAG, "About to send a modal alert to Pebble: " +
+     * notificationData); } sendBroadcast(i); notification_last_sent =
+     * System.currentTimeMillis();
+     * 
+     * }
+     */
+
+    /**
+     * Handler of incoming messages from PebbleCommService.
+     */
+    class PebbleCommIncomingHandler extends Handler {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+            case PebbleCommService.MSG_SEND_FINISHED:
+                Log.d("HandleWeChat", "Hooray! Message sent!");
+                break;
+            default:
+                super.handleMessage(msg);
             }
+        }
+    }
+
+    /**
+     * Handler of incoming messages from PebbleCommService.
+     */
+    class MessageProcessingIncomingHandler extends Handler {
+        @Override
+        public void handleMessage(Message msg) {
+
+            switch (msg.what) {
+            case MessageProcessingService.MSG_REPLY_PROCESSED_MSG:
+                Bundle b = msg.getData();
+
+                // The MessageProcessingService can reply with one of two
+                // objects
+                // - An object of PebbleMessage
+                // - A string with pinyin
+                if (b.containsKey(MessageProcessingService.KEY_RPL_PBL_MSG)) {
+                    PebbleMessage message = (PebbleMessage) b.getSerializable(MessageProcessingService.KEY_RPL_PBL_MSG);
+
+                    sendMessageToPebbleComm(message, notification_timeout);
+                } else if (b.containsKey(MessageProcessingService.KEY_RPL_STR)) {
+                    String title = b.getString(MessageProcessingService.KEY_RPL_TITLE);
+                    String message = b.getString(MessageProcessingService.KEY_RPL_STR);
+
+                    sendMessageToPebbleComm(title, message, notification_timeout);
+                }
+                break;
+            default:
+                super.handleMessage(msg);
+            }
+        }
+
+        private void sendMessageToPebbleComm(PebbleMessage message, int timeout) {
+            try {
+                Message msg = Message.obtain(null, PebbleCommService.MSG_SEND_DATA_TO_PEBBLE);
+                msg.replyTo = mMessengerPebbleComm;
+
+                msg.arg1 = PebbleCommService.TYPE_DATA_PBL_MSG;
+
+                msg.arg2 = timeout;
+
+                Bundle b = new Bundle();
+                b.putSerializable(PebbleCommService.KEY_MESSAGE, message);
+
+                msg.setData(b);
+
+                mServicePebbleComm.send(msg);
+            } catch (RemoteException e) {
+                // In this case the service has crashed before we could even
+                // do anything with it; we can count on soon being
+                // disconnected (and then reconnected if it can be restarted)
+                // so there is no need to do anything here.
+            }
+        }
+
+        private void sendMessageToPebbleComm(String title, String message, int timeout) {
+            try {
+                Message msg = Message.obtain(null, PebbleCommService.MSG_SEND_DATA_TO_PEBBLE);
+                msg.replyTo = mMessengerPebbleComm;
+
+                msg.arg1 = PebbleCommService.TYPE_DATA_STR;
+
+                msg.arg2 = timeout;
+
+                Bundle b = new Bundle();
+                b.putString(PebbleCommService.KEY_MESSAGE, message);
+                b.putString(PebbleCommService.KEY_TITLE, title);
+
+                msg.setData(b);
+
+                mServicePebbleComm.send(msg);
+            } catch (RemoteException e) {
+                // In this case the service has crashed before we could even
+                // do anything with it; we can count on soon being
+                // disconnected (and then reconnected if it can be restarted)
+                // so there is no need to do anything here.
+            }
+        }
+    }
+
+    /**
+     * Target we publish for clients to send messages to IncomingHandler.
+     */
+    final Messenger                 mMessengerPebbleComm         = new Messenger(new PebbleCommIncomingHandler());
+    final Messenger                 mMessengerMessageProcessing  = new Messenger(new MessageProcessingIncomingHandler());
+
+    /** Messenger for communicating with PebbleCommService. */
+    Messenger                       mServicePebbleComm           = null;
+    /** Messenger for communicating with PebbleCommService. */
+    Messenger                       mServiceMessageProcessing    = null;
+
+    /** Flag indicating whether we have called bind on the service. */
+    boolean                         mPebbleCommIsBound;
+
+    boolean                         mMessageProcessingIsBound;
+
+    /**
+     * Class for interacting with the main interface of the service.
+     */
+    private final ServiceConnection mConnectionPebbleComm        = new ServiceConnection() {
+                                                                     @Override
+                                                                     public void onServiceConnected(
+                                                                             ComponentName className, IBinder service) {
+
+                                                                         mServicePebbleComm = new Messenger(service);
+
+                                                                         mPebbleCommIsBound = true;
+
+                                                                     }
+
+                                                                     @Override
+                                                                     public void onServiceDisconnected(
+                                                                             ComponentName className) {
+
+                                                                         mServicePebbleComm = null;
+
+                                                                         mPebbleCommIsBound = false;
+                                                                     }
+                                                                 };
+
+    /**
+     * Class for interacting with the main interface of the service.
+     */
+    private final ServiceConnection mConnectionMessageProcessing = new ServiceConnection() {
+                                                                     @Override
+                                                                     public void onServiceConnected(
+                                                                             ComponentName className, IBinder service) {
+
+                                                                         mServiceMessageProcessing = new Messenger(
+                                                                                 service);
+
+                                                                         mMessageProcessingIsBound = true;
+
+                                                                     }
+
+                                                                     @Override
+                                                                     public void onServiceDisconnected(
+                                                                             ComponentName className) {
+
+                                                                         mServiceMessageProcessing = null;
+
+                                                                         mMessageProcessingIsBound = false;
+                                                                     }
+                                                                 };
+
+    private void sendToPebble(String title, String notificationText) {
+        if (!mPebbleCommIsBound) {
+            Log.d("PBL_HandleWeChat", "Comm Service not bound! Can't send message.");
             return;
         }
-        // Create json object to be sent to Pebble
-        final Map<String, Object> data = new HashMap<String, Object>();
 
-        data.put("title", title);
+        // Notification notification = (Notification) event.getParcelableData();
 
-        data.put("body", notificationText);
-        final JSONObject jsonData = new JSONObject(data);
-        final String notificationData = new JSONArray().put(jsonData).toString();
+        // String originalMsg = notification.tickerText.toString();
 
-        // Create the intent to house the Pebble notification
-        final Intent i = new Intent(Constants.INTENT_SEND_PEBBLE_NOTIFICATION);
-        i.putExtra("messageType", Constants.PEBBLE_MESSAGE_TYPE_ALERT);
-        i.putExtra("sender", getString(R.string.app_name));
-        i.putExtra("notificationData", notificationData);
+        Message msg = Message.obtain(null, MessageProcessingService.MSG_SEND_ORIGINAL_MSG);
+        msg.replyTo = mMessengerMessageProcessing;
 
-        // Send the alert to Pebble
-        if (Constants.IS_LOGGABLE) {
-            Log.d(Constants.LOG_TAG, "About to send a modal alert to Pebble: " + notificationData);
+        if (unicode_notifications) {
+            msg.arg1 = MessageProcessingService.PROCESS_UNIFONT;
+        } else {
+            msg.arg1 = MessageProcessingService.PROCESS_NO_PINYIN;
         }
-        sendBroadcast(i);
-        notification_last_sent = System.currentTimeMillis();
 
+        Bundle b = new Bundle();
+        b.putString(MessageProcessingService.KEY_ORIGINAL_TITLE, title);
+        b.putString(MessageProcessingService.KEY_ORIGINAL_MSG, notificationText);
+
+        msg.setData(b);
+
+        try {
+            Log.d("NotificationService", "Sending message to message processing service");
+            mServiceMessageProcessing.send(msg);
+        } catch (RemoteException e) {
+            Log.d("NotificationService", "Exception while sending data to the MessageProcessing");
+        }
     }
 
     @Override
@@ -314,7 +515,18 @@ public class NotificationService extends AccessibilityService {
         setServiceInfo(info);
 
         mHandler = new Handler();
-        queue = new LinkedList<queueItem>();
+        bindService(new Intent(NotificationService.this, PebbleCommService.class), mConnectionPebbleComm,
+                Context.BIND_AUTO_CREATE);
+        bindService(new Intent(NotificationService.this, MessageProcessingService.class), mConnectionMessageProcessing,
+                Context.BIND_AUTO_CREATE);
+
+        // queue = new LinkedList<queueItem>();
+    }
+
+    @Override
+    public void onDestroy() {
+        unbindService(mConnectionMessageProcessing);
+        unbindService(mConnectionPebbleComm);
     }
 
     private void loadPrefs() {
@@ -322,26 +534,6 @@ public class NotificationService extends AccessibilityService {
             Log.i(Constants.LOG_TAG, "I am loading preferences");
         }
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
-
-        SharedPreferences sharedPreferences = getSharedPreferences(Constants.LOG_TAG, MODE_MULTI_PROCESS | MODE_PRIVATE);
-        //if old preferences exist, convert them.
-        if(sharedPreferences.contains(Constants.LOG_TAG + ".mode")){
-            SharedPreferences.Editor editor = sharedPref.edit();
-            editor.putInt(Constants.PREFERENCE_MODE, sharedPreferences.getInt(Constants.LOG_TAG + ".mode", Constants.Mode.OFF.ordinal()));
-            editor.putString(Constants.PREFERENCE_PACKAGE_LIST, sharedPreferences.getString(Constants.LOG_TAG + ".packageList", ""));
-            editor.putBoolean(Constants.PREFERENCE_NOTIFICATIONS_ONLY, sharedPreferences.getBoolean(Constants.LOG_TAG + ".notificationsOnly", true));
-            editor.putBoolean(Constants.PREFERENCE_NOTIFICATION_EXTRA, sharedPreferences.getBoolean(Constants.LOG_TAG + ".fetchNotificationExtras", false));
-            editor.commit();
-
-            //clear out all old preferences
-            editor = sharedPreferences.edit();
-            editor.clear();
-            editor.commit();
-            if (Constants.IS_LOGGABLE) {
-                Log.i(Constants.LOG_TAG, "Converted preferences to new format. Old ones should be completely gone.");
-            }
-
-        }
 
         mode = Mode.values()[sharedPref.getInt(Constants.PREFERENCE_MODE, Mode.OFF.ordinal())];
 
@@ -357,12 +549,20 @@ public class NotificationService extends AccessibilityService {
         notification_extras = sharedPref.getBoolean(Constants.PREFERENCE_NOTIFICATION_EXTRA, false);
         notifScreenOn = sharedPref.getBoolean(Constants.PREFERENCE_NOTIF_SCREEN_ON, true);
         quiet_hours = sharedPref.getBoolean(Constants.PREFERENCE_QUIET_HOURS, false);
-        //we only need to pull this if quiet hours are enabled. Save the cycles for the cpu! (haha)
-        if(quiet_hours){
+
+        // we only need to pull this if quiet hours are enabled. Save the cycles
+        // for the cpu! (haha)
+        if (quiet_hours) {
             String[] pieces = sharedPref.getString(Constants.PREFERENCE_QUIET_HOURS_BEFORE, "00:00").split(":");
-            quiet_hours_before= new Date(0, 0, 0, Integer.parseInt(pieces[0]), Integer.parseInt(pieces[1]));
+            quiet_hours_before = new Date(0, 0, 0, Integer.parseInt(pieces[0]), Integer.parseInt(pieces[1]));
             pieces = sharedPref.getString(Constants.PREFERENCE_QUIET_HOURS_AFTER, "23:59").split(":");
             quiet_hours_after = new Date(0, 0, 0, Integer.parseInt(pieces[0]), Integer.parseInt(pieces[1]));
+        }
+
+        unicode_notifications = sharedPref.getBoolean(Constants.PREFERENCE_UNICODE, false);
+        if (unicode_notifications) {
+            notification_timeout = Integer.valueOf(sharedPref.getString(Constants.PREFERENCE_NOTIFICATION_TIMEOUT,
+                    "10000"));
         }
 
         lastChange = watchFile.lastModified();

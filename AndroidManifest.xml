@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.dattasmoon.pebble.plugin"
+    package="com.espinhasoftware.pebblenotifier"
     android:installLocation="internalOnly"
-    android:versionCode="17"
-    android:versionName="2.7" >
+    android:versionCode="19"
+    android:versionName="3.0 alpha 2" >
 
     <uses-sdk
         android:minSdkVersion="9"
@@ -62,7 +62,8 @@
                 <action android:name="android.accessibilityservice.AccessibilityService" />
             </intent-filter>
         </service>
-
+		<service android:name="com.espinhasoftware.wechatpebble.service.MessageProcessingService" ></service>
+        <service android:name="com.espinhasoftware.wechatpebble.service.PebbleCommService" ></service>
         <receiver
             android:name="com.dattasmoon.pebble.plugin.FireReceiver"
             android:exported="true"

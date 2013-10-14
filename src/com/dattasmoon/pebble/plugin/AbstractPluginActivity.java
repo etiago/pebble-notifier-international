@@ -19,6 +19,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import com.espinhasoftware.pebblenotifier.R;
 import com.twofortyfouram.locale.BreadCrumber;
 
 public abstract class AbstractPluginActivity extends Activity {
