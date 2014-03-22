@@ -1,0 +1,17 @@
+{
+  "uuid": "FE2B571C-2853-4A00-9F99-8D754FCF738F",
+  "shortName": "wachatpebble",
+  "longName": "wachatpebble",
+  "companyName": "Tiago Espinha Software",
+  "versionCode": 3,
+  "versionLabel": "1.0.0",
+  "watchapp": {
+    "watchface": false
+  },
+  "appKeys": {
+    "dummy": 0
+  },
+  "resources": {
+    "media": []
+  }
+}
