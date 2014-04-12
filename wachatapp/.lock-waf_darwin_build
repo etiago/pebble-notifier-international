@@ -1,0 +1,8 @@
+argv = ['/Users/yunshansimon/pebble-dev/PebbleSDK-2.0.1/Pebble/waf', 'configure', 'build']
+environ = {'TERM_SESSION_ID': '6EA079E3-8BEA-42E8-908C-15071CADDF82', 'SSH_AUTH_SOCK': '/tmp/launch-dzLgB2/Listeners', 'PYTHONPATH': '/Users/yunshansimon/pebble-dev/PebbleSDK-current/bin/../.env/lib/python2.7/site-packages', 'VERSIONER_PYTHON_PREFER_32_BIT': 'no', 'TERM_PROGRAM_VERSION': '326', 'SHELL': '/bin/bash', 'LOGNAME': 'yunshansimon', 'USER': 'yunshansimon', 'HOME': '/Users/yunshansimon', 'PATH': '/Users/yunshansimon/pebble-dev/PebbleSDK-2.0.1/arm-cs-tools/bin:/opt/local/bin:/opt/local/sbin:/Users/yunshansimon/pebble-dev/PebbleSDK-current/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin', 'TMPDIR': '/var/folders/sd/nchrplqd01d1240n5hb7tgcc0000gn/T/', 'TERM_PROGRAM': 'Apple_Terminal', 'LANG': 'zh_CN.UTF-8', 'TERM': 'xterm-256color', 'Apple_PubSub_Socket_Render': '/tmp/launch-Znq9wY/Render', 'VERSIONER_PYTHON_VERSION': '2.7', 'SHLVL': '2', '__CF_USER_TEXT_ENCODING': '0x1F5:25:52', 'PWD': '/Users/yunshansimon/mypebble-project/wachatapp', '_': '/Users/yunshansimon/pebble-dev/PebbleSDK-2.0.1/Pebble/waf', '__CHECKFIX1436934': '1'}
+files = ['/Users/yunshansimon/mypebble-project/wachatapp/wscript']
+hash = 4672844372416070989
+options = {'files': '', 'jobs': 4, 'verbose': 0, 'nocache': False, 'progress_bar': 0, 'timestamp': None, 'distcheck_args': None, 'top': '', 'destdir': '', 'keep': 0, 'zones': '', 'debug': False, 'prefix': '/usr/local/', 'download': False, 'force': False, 'targets': '', 'out': ''}
+out_dir = '/Users/yunshansimon/mypebble-project/wachatapp/build'
+run_dir = '/Users/yunshansimon/mypebble-project/wachatapp'
+top_dir = '/Users/yunshansimon/mypebble-project/wachatapp'
